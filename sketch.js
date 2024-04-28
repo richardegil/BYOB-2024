@@ -1,124 +1,111 @@
-let shdr;
-let vertSource, fragSource;
-let cnvs1;
-
-const flock = [];
-
-let alignSlider;
-let cohesionSlider;
-let separationSlider;
-
-let backgroundColor = []; let strokeColor = [];
-
-
-let noiseOffsetX = 0;
-let noiseOffsetY = 1000;
-
-
-function preload() {
-  vertSource = loadStrings('shaders/default.vert');
-  fragSource = loadStrings('shaders/default.frag');
-}
+let inc = 0.1;
+let scl = 80;
+let cols, rows;
+let zoff = 0;
+let particles = [];
+let flowfield;
 
 function setup() {
-  pixelDensity(2);
-  // colorMode(HSB, 360, 100, 100);
-  // maxCanvas = min(windowWidth, windowHeight);
+  createCanvas(windowWidth, windowWidth * 0.5625);
+  background(10);
+  cols = floor(width / scl);
+  rows = floor(height / scl);
+  flowfield = new Array(cols * rows);
 
-  createCanvas(windowWidth, windowWidth * 0.5625, WEBGL);
-  alignSlider = createSlider(0, 5, 1, 0.1);
-  cohesionSlider = createSlider(0, 5, 1, 0.1);
-  separationSlider = createSlider(0, 5, 1.25, 0.1);
-  cnvs1 = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-
-  // for(let i = 0; i < 100; i++) {
-  //   flock.push(new Boid());
-  // }
-
-  palette = floor(random(palettes.length));
-  initialColor = floor(random(5));
-  getColor(palette, initialColor);
-  backgroundColor = [h, s, b];
-
-  palette = floor(random(palettes.length));
-  initialColor = floor(random(5));
-  getColor(palette, initialColor);
-  strokeColor = [h, s, b];
-  
-  vertSource = resolveLygia(vertSource);
-  fragSource = resolveLygia(fragSource);
-  shdr = createShader(vertSource, fragSource);
+  for (let i = 0; i < 300; i++) {
+    particles[i] = new Particle();
+  }
 }
 
 function draw() {
-
-  // if (frameCount === 100) {
-  //   const capture = P5Capture.getInstance();
-  //   capture.start({
-  //     format: "jpg",
-  //     duration: 300,
-  //   });
-  // }
-
-  translate(-width, -height / 2);
-  let offset = map(sin(millis() * 0.01), -1, 1, -width, width);
-  offset = 0;
-
-  cnvs1.push();
-  // cnvs1.translate(width / 2, height / 2);
-  cnvs1.ellipseMode(CENTER);
-  cnvs1.clear();
-  cnvs1.background(backgroundColor[0], backgroundColor[1], backgroundColor[2], 0.5);
-  cnvs1.fill(255, 0, 0);
-  cnvs1.noStroke();
-  cnvs1.ellipse(0, 0, width * 0.5, width * 0.5);
-  // drawLines();
-  
-  cnvs1.pop();
-  drawLines();
-  
-  
-  shader(shdr);
-  shdr.setUniform('u_tex0', cnvs1);
-  shdr.setUniform('u_offset', offset);
-  shdr.setUniform('u_resolution', [width, height] );
-  shdr.setUniform('u_mouse', [mouseX, mouseY]);
-  shdr.setUniform('u_time', millis() / 500.0);
-  rect(0, 0, width, height);
-
-}
-
-
-function keyPressed() {
-  if (key === 's') {
-    save(`exports/reg_BYOB2024_${prompt}__.png`);
-  }
-}
-
-function drawGlitter() {
-  // Add random glittering lights
-  fill(255);
-  for (let i = 0; i < 5; i++) {
-    let glitterX = random(width);
-    let glitterY = random(height);
-    ellipse(glitterX, glitterY, 2, 2);
-  }
-}
-
-function drawLines() {
-  stroke(255);
-  translate(width / 2, 0);
-  for (let y = 0; y < height + 20; y += 20) {
-    beginShape();
-    for (let x = 0; x < width; x += 5) {
-      let noiseValue = noise(noiseOffsetX + x * 0.005, noiseOffsetY + y * 0.005);
-      let yOffset = map(noiseValue, 0, 1, -10, 10);
-      vertex(x, y + yOffset);
+  background(10, 20);
+  let yoff = 0;
+  for (let y = 0; y < rows; y++) {
+    let xoff = 0;
+    for (let x = 0; x < cols; x++) {
+      let index = x + y * cols;
+      let angle = noise(xoff, yoff, zoff) * TWO_PI * 4;
+      let v = p5.Vector.fromAngle(angle);
+      v.setMag(1);
+      flowfield[index] = v;
+      xoff += inc;
     }
-    endShape();
+    yoff += inc;
+    zoff += 0.0003;
   }
 
-  // Increment noise offset for animation
-  noiseOffsetX += 0.01;
-  noiseOffsetY += 0.01;
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].follow(flowfield);
+    particles[i].update();
+    particles[i].edges();
+    particles[i].show();
+    particles[i].changeColor();
+  }
+}
+
+class Particle {
+  constructor() {
+    this.pos = createVector(random(width), random(height));
+    this.vel = createVector(0, 0);
+    this.acc = createVector(0, 0);
+    this.maxSpeed = 4;
+    this.prevPos = this.pos.copy();
+    this.color = color(random(255), random(100, 255), random(100, 255));
+  }
+
+  update() {
+    this.vel.add(this.acc);
+    this.vel.limit(this.maxSpeed);
+    this.pos.add(this.vel);
+    this.acc.mult(0);
+  }
+
+  applyForce(force) {
+    this.acc.add(force);
+  }
+
+  show() {
+    strokeWeight(2);
+    stroke(this.color);
+    line(this.pos.x, this.pos.y, this.prevPos.x, this.prevPos.y);
+    this.updatePrev();
+  }
+
+  updatePrev() {
+    this.prevPos.x = this.pos.x;
+    this.prevPos.y = this.pos.y;
+  }
+
+  edges() {
+    if (this.pos.x > width) {
+      this.pos.x = 0;
+      this.updatePrev();
+    }
+    if (this.pos.x < 0) {
+      this.pos.x = width;
+      this.updatePrev();
+    }
+    if (this.pos.y > height) {
+      this.pos.y = 0;
+      this.updatePrev();
+    }
+    if (this.pos.y < 0) {
+      this.pos.y = height;
+      this.updatePrev();
+    }
+  }
+
+  follow(flowfield) {
+    let x = floor(this.pos.x / scl);
+    let y = floor(this.pos.y / scl);
+    let index = x + y * cols;
+    let force = flowfield[index];
+    this.applyForce(force);
+  }
+
+  changeColor() {
+    this.color.setRed(map(noise(frameCount * 0.01), 0, 1, 100, 255));
+    this.color.setGreen(map(noise(frameCount * 0.01), 0, 1, 100, 255));
+    this.color.setBlue(map(noise(frameCount * 0.01), 0, 1, 100, 255));
+  }
 }
