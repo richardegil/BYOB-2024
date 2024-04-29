@@ -1,124 +1,112 @@
-let shdr;
-let vertSource, fragSource;
-let cnvs1;
+/* ------------------------------ */
+// PROJECT INFO
+/* ------------------------------ */
+let filename = getProjectName();
 
-const flock = [];
+/* ------------------------------ */
+// DATE
+/* ------------------------------ */
+let currentMoment = getCurrentDate();
 
-let alignSlider;
-let cohesionSlider;
-let separationSlider;
-
-let backgroundColor = []; let strokeColor = [];
-
-
-let noiseOffsetX = 0;
-let noiseOffsetY = 1000;
-
-
-function preload() {
-  vertSource = loadStrings('shaders/default.vert');
-  fragSource = loadStrings('shaders/default.frag');
-}
+/* ------------------------------ */
+// VARIABLES
+/* ------------------------------ */
+let shapes = [];
+const numberOfShapes = 10;
 
 function setup() {
-  pixelDensity(2);
-  // colorMode(HSB, 360, 100, 100);
-  // maxCanvas = min(windowWidth, windowHeight);
-
+  // MAIN CANVAS
   createCanvas(windowWidth, windowWidth * 0.5625, WEBGL);
-  alignSlider = createSlider(0, 5, 1, 0.1);
-  cohesionSlider = createSlider(0, 5, 1, 0.1);
-  separationSlider = createSlider(0, 5, 1.25, 0.1);
-  cnvs1 = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-
-  // for(let i = 0; i < 100; i++) {
-  //   flock.push(new Boid());
-  // }
-
-  palette = floor(random(palettes.length));
-  initialColor = floor(random(5));
-  getColor(palette, initialColor);
-  backgroundColor = [h, s, b];
-
-  palette = floor(random(palettes.length));
-  initialColor = floor(random(5));
-  getColor(palette, initialColor);
-  strokeColor = [h, s, b];
   
-  vertSource = resolveLygia(vertSource);
-  fragSource = resolveLygia(fragSource);
-  shdr = createShader(vertSource, fragSource);
+  // SKETCH SETTINGS
+  pixelDensity(2);
+  colorMode(HSB, 360, 100, 100, 100);
+  angleMode(DEGREES);
+
+
+  for(let i = 0; i < numberOfShapes; i++) {
+    shapes.push(new Shape());
+  }
 }
 
 function draw() {
+  translate( -width / 2, -height / 2);
+  background('slategrey');
 
-  // if (frameCount === 100) {
-  //   const capture = P5Capture.getInstance();
-  //   capture.start({
-  //     format: "jpg",
-  //     duration: 300,
-  //   });
-  // }
 
-  translate(-width, -height / 2);
-  let offset = map(sin(millis() * 0.01), -1, 1, -width, width);
-  offset = 0;
+  stroke('white');
+  rectMode(CENTER);
+  rect(width / 2, 0, 100, 100);
 
-  cnvs1.push();
-  // cnvs1.translate(width / 2, height / 2);
-  cnvs1.ellipseMode(CENTER);
-  cnvs1.clear();
-  cnvs1.background(backgroundColor[0], backgroundColor[1], backgroundColor[2], 0.5);
-  cnvs1.fill(255, 0, 0);
-  cnvs1.noStroke();
-  cnvs1.ellipse(0, 0, width * 0.5, width * 0.5);
-  // drawLines();
-  
-  cnvs1.pop();
-  drawLines();
-  
-  
-  shader(shdr);
-  shdr.setUniform('u_tex0', cnvs1);
-  shdr.setUniform('u_offset', offset);
-  shdr.setUniform('u_resolution', [width, height] );
-  shdr.setUniform('u_mouse', [mouseX, mouseY]);
-  shdr.setUniform('u_time', millis() / 500.0);
-  rect(0, 0, width, height);
-
+  push();
+    for (let i = 0; i < shapes.length; i++) {
+      shapes[i].move();
+      shapes[i].display();
+    }
+  pop();
 }
-
 
 function keyPressed() {
   if (key === 's') {
-    save(`exports/reg_BYOB2024_${prompt}__.png`);
+    save(`reg_${filename}_${currentMoment}.png`);
   }
 }
 
-function drawGlitter() {
-  // Add random glittering lights
-  fill(255);
-  for (let i = 0; i < 5; i++) {
-    let glitterX = random(width);
-    let glitterY = random(height);
-    ellipse(glitterX, glitterY, 2, 2);
-  }
-}
 
-function drawLines() {
-  stroke(255);
-  translate(width / 2, 0);
-  for (let y = 0; y < height + 20; y += 20) {
-    beginShape();
-    for (let x = 0; x < width; x += 5) {
-      let noiseValue = noise(noiseOffsetX + x * 0.005, noiseOffsetY + y * 0.005);
-      let yOffset = map(noiseValue, 0, 1, -10, 10);
-      vertex(x, y + yOffset);
+class Shape {
+  constructor() {
+    this.init();
+    this.y = random(-this.r * 0.75, height + this.r * 0.75);
+  }
+
+  init() {
+    this.r = random(width * 0.05, width * 0.25);
+    this.x = random(width);
+    this.y = height + this.r * 0.75;
+    this.speed = random(2, 8);
+    // this.colorInside = color(random(360), 100, 100);
+    // this.colorOutside = color(
+    //   hue(this.colorInside),
+    //   saturation(this.colorInside),
+    //   60
+    // );
+    // this.colorInside = random(palette);
+    // this.colorOutside = color(
+    //   hue(this.colorInside),
+    //   saturation(this.colorInside) * 0.8,
+    //   brightness(this.colorInside) * 0.25
+    // );
+  }
+
+  move() {
+    this.y -= this.speed;
+
+    if (this.y < -this.r * 0.75) {
+      this.init();
     }
-    endShape();
+
   }
 
-  // Increment noise offset for animation
-  noiseOffsetX += 0.01;
-  noiseOffsetY += 0.01;
+  display() {
+    push();
+    translate(this.x, this.y);
+
+    push();
+    fill("#02328B");
+    // fill(this.colorOutside);
+    ellipse(0, 0, this.r);
+    pop();
+
+    push();
+    fill("#08D6F3");
+    circle(0, 0, this.r);
+    pop();
+
+    push();
+    fill(0, 0, 100, 97);
+    circle(0, 0, this.r);
+    pop();
+
+    pop();
+  }
 }
