@@ -38,13 +38,13 @@ function handleMidi (message) {
   // Pad 3
 	if (midiKeyID === 2) {
     console.log(3)
-    shapeValue = "sphere"
+    currentCanvas = cnvs[2];
 	}
 
   // Pad 4
 	if (midiKeyID === 3) {
     console.log(4)
-    shapeValue = "torus"
+    currentCanvas = cnvs[3];
 	}
 
   // Pad 5

@@ -15,9 +15,21 @@ let currentMoment = getCurrentDate();
 let cnvs = [];
 let currentCanvas;
 
+// --- TIME
+let currentPercentage;
+let interval = 1000;
+let start = '2024-05-04T17:40:00';
+let finish = '2024-05-04T18:00:00';
+
 // --- SHAPES (unused right now)
 let shapes = [];
 const numberOfShapes = 10;
+
+// --- RINGS
+let radius = 100;
+let vertices = 360;
+let angle;
+  
 
 // --- COLORS
 let palette;
@@ -54,6 +66,8 @@ function setup() {
 	smooth();
   colorChange();
 
+	angle = TWO_PI / vertices;
+
   palette = floor(random(palettes.length));
   initialColor = floor(random(5));
   getColor(palette, initialColor);
@@ -67,9 +81,9 @@ function draw() {
 	noStroke();
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
-	
   drawWaves(cnvs[1]);
-
+	// drawRings(cnvs[2]);
+	drawSuns(cnvs[3], currentPercentage);
 	noStroke();
 	shader(theShader);
 	theShader.setUniform('u_tex0', currentCanvas);
@@ -78,6 +92,7 @@ function draw() {
 	theShader.setUniform('u_mouse', [mouseX, mouseY]);
 	theShader.setUniform('u_time', millis() / 500.0);
 	rect(0, 0, width, height);
+	// console.log({currentPercentage});
 }
 
 // --- KEYPRESS LOGIC
@@ -333,3 +348,52 @@ function drawWaves(p) {
 	p.pop();
 }
 
+function drawRings(p) {
+	p.push();
+	p.translate(-width / 2, -height / 2);
+
+	for (let i = 0; i < 100; i++) {
+		let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
+		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
+		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
+		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
+		p.push();
+		p.beginShape();
+		for (let i = 0; i < vertices; i++) {
+			let x = cos(angle * i) * radius;
+			let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
+      let y = map(n, 0, 1, 0, height);
+      p.vertex(x, y);
+		}
+		p.endShape();
+		p.pop();
+	}
+	p.pop();
+}
+
+function drawSuns(p, currentPercentage) {
+	p.clear();
+	console.log({currentPercentage});
+	// let img = cnvs[1].get();
+	p.noStroke();
+	// // p.rotateX(frameCount);
+	// 	p.rotateZ(frameCount * 2);
+	p.push()
+	p.translate(0, height * currentPercentage);
+		// p.texture(img);
+		p.fill(100, 100, 100, 100);
+		p.ellipse(0, 0, width * 0.5);
+	p.pop();
+
+	p.push()
+	p.translate(0, - (height * currentPercentage));
+		// p.texture(img);
+		
+		p.ellipse(0, 0, width * 0.5);
+	p.pop();
+}
+
+setInterval(() => {
+	currentPercentage = getTimePercentage(start, finish);
+	// console.log(currentPercentage);
+}, interval);

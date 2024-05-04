@@ -18,3 +18,19 @@ const getCurrentDate = () => {
 
   return currentMoment;
 }
+
+const getTimePercentage = (start, finish) => {
+    let currentTime = new Date();
+    let startTime = new Date(start);
+    let finishTime = new Date(finish);
+    
+    // Calculate the elapsed time and total time interval in milliseconds
+    let elapsedTime = currentTime - startTime;
+    let totalTime = finishTime - startTime;
+    
+    // Calculate the percentage
+    let percentage = (elapsedTime / totalTime);
+    
+    // Return the percentage value
+    return percentage;
+  }
