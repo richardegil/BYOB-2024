@@ -42,12 +42,6 @@ function setup() {
 	colorMode(HSB, 360, 100, 100, 100);
 	angleMode(DEGREES);
 	smooth();
-	
-
-	// BUILDING ARRAYS
-	for (let i = 0; i < numberOfShapes; i++) {
-		shapes.push(new Shape());
-	}
 }
 
 function draw() {
@@ -113,75 +107,7 @@ function keyPressed() {
 	}
 }
 
-
-class Shape {
-  constructor() {
-    this.init();
-    this.y = random(-this.r * 0.75, height + this.r * 0.75);
-  }
-
-  init() {
-    this.r = random(width * 0.05, width * 0.25);
-    this.x = random(width);
-    this.y = height + this.r * 0.75;
-    this.speed = random(2, 8);
-    // this.colorInside = color(random(360), 100, 100);
-    // this.colorOutside = color(
-    //   hue(this.colorInside),
-    //   saturation(this.colorInside),
-    //   60
-    // );
-    // this.colorInside = random(palette);
-    // this.colorOutside = color(
-    //   hue(this.colorInside),
-    //   saturation(this.colorInside) * 0.8,
-    //   brightness(this.colorInside) * 0.25
-    // );
-  }
-
-  move() {
-    this.y -= this.speed;
-
-    if (this.y < -this.r * 0.75) {
-      this.init();
-    }
-
-  }
-
-  display(p) {
-		p.translate( -width / 2, -height / 2);
-    p.push();
-    p.translate(this.x, this.y);
-
-    p.push();
-    p.drawingContext.shadowColor = color("#02328B");
-    // drawingContext.shadowColor = this.colorOutside;
-    p.drawingContext.shadowBlur = this.r;
-    p.fill("#02328B");
-    // fill(this.colorOutside);
-    p.circle(0, 0, this.r);
-    p.pop();
-
-    p.push();
-    p.drawingContext.shadowColor = color("#08D6F3");
-    // drawingContext.shadowColor = this.colorInside;
-    p.drawingContext.shadowBlur = this.r * 0.3;
-    p.fill("#08D6F3");
-    // fill(this.colorInside);
-    p.circle(0, 0, this.r);
-    p.pop();
-
-    p.push();
-    p.fill(0, 0, 100, 97);
-    p.circle(0, 0, this.r);
-    p.pop();
-
-    p.pop();
-  }
-}
-
-function getShader(v, f) {
-	
+function getShader(v, f) {	
 	let vert;
 	let frag;
 	
