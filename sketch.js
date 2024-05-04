@@ -85,6 +85,7 @@ function draw() {
 	rect(0, 0, width, height);
 }
 
+// --- KEYPRESS LOGIC
 function keyPressed() {
 	if (key === 's') {
 		save(`reg_${filename}_${currentMoment}.png`);
