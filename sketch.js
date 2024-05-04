@@ -2,7 +2,6 @@
 // PROJECT INFO0
 /* ------------------------------ */
 let filename = getProjectName();
-let cnvs = [];
 
 /* ------------------------------ */
 // DATE
@@ -12,16 +11,19 @@ let currentMoment = getCurrentDate();
 /* ------------------------------ */
 // VARIABLES
 /* ------------------------------ */
-// SHAPES (unused right now)
+// --- CANVASES
+let cnvs = [];
+let currentCanvas;
+
+// --- SHAPES (unused right now)
 let shapes = [];
 const numberOfShapes = 10;
 
-// COLORS
+// --- COLORS
 let palette;
 let initialColor;
 let strokeColor;
-
-
+let backgroundColor;
 
 /* ------------------------------ */
 // SHADERS
@@ -31,53 +33,46 @@ let f = 'standardFragmentShader';
 let v = 'vertexShader';
 
 function setup() {
-	// MAIN CANVAS
+	// --- MAIN CANVAS
 	createCanvas(windowWidth, windowWidth * 0.5625, WEBGL);
 
-	// SECONDARY CANVASES 
+	// --- SECONDARY CANVASES 
 	cnvs[0] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
+  cnvs[1] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
+	cnvs[2] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
+	cnvs[3] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
+	cnvs[4] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
+  currentCanvas = cnvs[0];
 
-	// SKETCH SETTINGS
+  // --- MIDI
+  initMIDI();
+
+	// --- SKETCH SETTINGS
 	pixelDensity(2);
 	colorMode(HSB, 360, 100, 100, 100);
 	angleMode(DEGREES);
 	smooth();
+  colorChange();
+
+  palette = floor(random(palettes.length));
+  initialColor = floor(random(5));
+  getColor(palette, initialColor);
+  backgroundColor = [h, s, b];
 }
 
 function draw() {
+	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
 	theShader = getShader(v, f);
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
-	background('snow');
-
-	stroke('white');
 	rectMode(CENTER);
-	cnvs[0].push();
-	cnvs[0].translate(-width / 2, -height / 2);
 	
-	for (let i = 0; i < 100; i++) {
-    let paint = map(i / frameCount, 0, 100, 0, 360);
-		let hue = map(i, 0, 100, 0, 100);
-		let sat = map(i, 0, 100, 0, 100);
-		let alph = map(i, 0, 100, 0, 100);
-    cnvs[0].stroke(paint, hue, sat, alph);
-		cnvs[0].noFill();
-		cnvs[0].push();
-    cnvs[0].beginShape();
-    for (let x = -10; x < width + 11; x += 20) {
-      let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
-      let y = map(n, 0, 1, 0, height);
-      cnvs[0].vertex(x, y);
-    }
-    cnvs[0].endShape();
-		cnvs[0].pop();
-	}
-	cnvs[0].pop();
+  drawWaves(cnvs[1]);
 
 	noStroke();
 	shader(theShader);
-	theShader.setUniform('u_tex0', cnvs[0]);
+	theShader.setUniform('u_tex0', currentCanvas);
 	// theShader.setUniform('u_offset', offset);
 	theShader.setUniform('u_resolution', [width, height]);
 	theShader.setUniform('u_mouse', [mouseX, mouseY]);
@@ -87,6 +82,7 @@ function draw() {
 
 // --- KEYPRESS LOGIC
 function keyPressed() {
+  console.log({key});
 	if (key === 's') {
 		save(`reg_${filename}_${currentMoment}.png`);
 	}
@@ -108,6 +104,7 @@ function keyPressed() {
 	}
 }
 
+// --- SHADER LOGIC
 function getShader(v, f) {	
 	let vert;
 	let frag;
@@ -291,9 +288,48 @@ function getShader(v, f) {
 	return createShader(vert, frag);
 }
 
+// --- COLOR CHANGE LOGIC
 function colorChange() {
-    setInterval(() => {
-        // code to change the value here
-    }, 30000); // 30 seconds in milliseconds
+  console.log('start');
+  palette = floor(random(palettes.length));
+  initialColor = floor(random(5));
+  getColor(palette, initialColor);
+  strokeColor = [h, s, b];
+
+  let i = 0;
+  setInterval(() => {
+    palette = floor(random(palettes.length));
+    initialColor = floor(random(5));
+    getColor(palette, initialColor);
+    strokeColor = [h, s, b];
+
+    console.log(`test: ${i}`)
+    i++;
+  }, 30000); // 30 seconds in milliseconds
+  return strokeColor;
+}
+
+function drawWaves(p) {
+  p.push();
+	p.translate(-width / 2, -height / 2);
+
+	for (let i = 0; i < 100; i++) {
+    let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
+		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
+		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
+		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
+    p.stroke(paint, hue, sat, alph);
+		p.noFill();
+		p.push();
+    p.beginShape();
+    for (let x = -10; x < width + 11; x += 20) {
+      let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
+      let y = map(n, 0, 1, 0, height);
+      p.vertex(x, y);
+    }
+    p.endShape();
+		p.pop();
+	}
+	p.pop();
 }
 
