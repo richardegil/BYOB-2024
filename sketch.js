@@ -17,10 +17,10 @@ let cnvsG = [];
 let currentCanvas;
 
 let canvasMask;
-let canvasMaskSize = 600;
+let canvasMaskSize;
 
 let canvasSource;
-let glowSize = 800;
+let glowSize;
 
 // --- TIME
 let currentPercentage;
@@ -99,6 +99,9 @@ function setup() {
 
 	angle = TWO_PI / vertices;
 
+	canvasMaskSize = height;
+	glowSize = height;
+
   palette = floor(random(palettes.length));
   initialColor = floor(random(5));
   getColor(palette, initialColor);
@@ -113,8 +116,8 @@ function draw() {
 	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
 	theShader = getShader(v, f);
 	
-	let _c1 = color( 100, 100, 100, 100 );
-  let _c2 = color( 200, 100, 100, 0 );
+	let _c1 = color( 0, 0, 100, 100 );
+  let _c2 = color( 0, 0, 100, 0 );
 
 	smooth();
 	noStroke();
@@ -155,15 +158,18 @@ function draw() {
 	cnvsG[0].rect(0, 0, width, height);
 
 	image(cnvsG[0], 0, 0 , width, height);
-	
 	push();
-	translate(0, (height - 100) - 450);
+	// translate(0, (height - 100) - 450);
+	blendMode(BLEND);
+	translate(0, height / 2);
+	rotateX(180);
 	image(canvasMask, 0, 0, width, height);
 	pop();
 
 	push();
-	translate(0, ((height / 2) - 200) + 450);
-	rotateX(180);
+	translate(0, height / 2);
+	// translate(0, ((height / 2) - 200) + 450);
+	rotateX(0);
 	image(canvasMask, 0, 0, width, height);
 	pop();
 }
