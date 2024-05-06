@@ -13,13 +13,14 @@ let currentMoment = getCurrentDate();
 /* ------------------------------ */
 // --- CANVASES
 let cnvs = [];
+let cnvsG = [];
 let currentCanvas;
 
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start = '2024-05-04T17:40:00';
-let finish = '2024-05-04T18:00:00';
+let start = '2024-05-05T14:50:00';
+let finish = '2024-05-05T15:10:00';
 
 // --- SHAPES (unused right now)
 let shapes = [];
@@ -44,17 +45,31 @@ let theShader;
 let f = 'standardFragmentShader';
 let v = 'vertexShader';
 
+function preload() {
+	theShader = getShader(v, f);
+	// circleShader = getShader(v, 'transparent');
+}
+
 function setup() {
 	// --- MAIN CANVAS
 	createCanvas(windowWidth, windowWidth * 0.5625, WEBGL);
 
+	cnvsG[0] = createGraphics(width, windowWidth * 0.5625, WEBGL);
+
 	// --- SECONDARY CANVASES 
-	cnvs[0] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-  cnvs[1] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-	cnvs[2] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-	cnvs[3] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-	cnvs[4] = createGraphics(windowWidth, windowWidth * 0.5625, WEBGL);
-  currentCanvas = cnvs[0];
+	// BASE
+	cnvs[0] = createFramebuffer();
+	// WAVES
+	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
+	// TBD
+	cnvs[2] = createFramebuffer();
+	// TBD
+	cnvs[3] = createFramebuffer();
+	// SUNS
+	cnvs[4] = createFramebuffer();
+
+
+  currentCanvas = cnvs[1];
 
   // --- MIDI
   initMIDI();
@@ -77,22 +92,32 @@ function setup() {
 function draw() {
 	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
 	theShader = getShader(v, f);
+	
+	
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
   drawWaves(cnvs[1]);
-	// drawRings(cnvs[2]);
-	drawSuns(cnvs[3], currentPercentage);
-	noStroke();
-	shader(theShader);
+
+	cnvs[4].begin();
+		blendMode(BLEND);
+		clear();
+		fill(0, 100, 100, 100);  
+		ellipse(0, 0, width * 0.25);
+	cnvs[4].end();
+	cnvsG[0].clear();
+	cnvsG[0].shader(theShader);
 	theShader.setUniform('u_tex0', currentCanvas);
 	// theShader.setUniform('u_offset', offset);
 	theShader.setUniform('u_resolution', [width, height]);
 	theShader.setUniform('u_mouse', [mouseX, mouseY]);
 	theShader.setUniform('u_time', millis() / 500.0);
-	rect(0, 0, width, height);
-	// console.log({currentPercentage});
+	cnvsG[0].rect(0, 0, width, height);
+
+	image(cnvsG[0], 0, 0 , width, height);
+	
+	image(cnvs[4], 0, 0, width, height);
 }
 
 // --- KEYPRESS LOGIC
@@ -120,7 +145,7 @@ function keyPressed() {
 }
 
 // --- SHADER LOGIC
-function getShader(v, f) {	
+function getShader(v = "vertexShader", f = "standardFragmentShader") {	
 	let vert;
 	let frag;
 	
@@ -286,6 +311,23 @@ function getShader(v, f) {
 			gl_FragColor = texture2D(u_tex0, uv);
 		}
   `;
+
+	let transparentFragmentShader = `
+	precision highp float;
+
+	uniform float time;
+
+	void main() {
+    vec2 center = vec2(0.0, 0.0);
+    float radius = 100.0;
+  
+    vec2 position = gl_FragCoord.xy - center;
+    float dist = length(position);
+    
+    float gradient = smoothstep(radius - 2.0, radius, dist);
+    
+    gl_FragColor = vec4(gradient, gradient, gradient, 1.0);
+	}`;
 	
 	if (v == "vertexShader") {
 		vert = vertexShader;
@@ -297,6 +339,8 @@ function getShader(v, f) {
 		frag = mirroredFragmentShader;
 	} else if (f == "tiled") {
 		frag = tiledFragmentShader;
+	} else if (f == "transparent") {
+		frag = transparentFragmentShader;
 	} else {
 		frag = standardFragmentShader;
 	}
@@ -324,7 +368,14 @@ function colorChange() {
   return strokeColor;
 }
 
+function drawSuns() {
+	
+}
+
 function drawWaves(p) {
+	// cnvs[1].begin();
+	// p.background(100, 100, 100, 100);
+	// p.clear();
   p.push();
 	p.translate(-width / 2, -height / 2);
 
@@ -332,7 +383,7 @@ function drawWaves(p) {
     let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
 		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
 		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
-		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
+		let alph = map(sin(frameCount), 0, 100, 0, 100);
     p.stroke(paint, hue, sat, alph);
 		p.noFill();
 		p.push();
@@ -346,6 +397,33 @@ function drawWaves(p) {
 		p.pop();
 	}
 	p.pop();
+	// cnvs[1].end();
+}
+
+function drawCircle() {
+	cnvs[0].begin();
+	push();
+	translate(-width / 2, -height / 2);
+
+	for (let i = 0; i < 100; i++) {
+    let paint = map(strokeColor[0] / i / frameCount, 0, 100, 0, 360);
+		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
+		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
+		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
+    stroke(paint, hue, sat, alph);
+		noFill();
+		push();
+    beginShape();
+    for (let x = -10; x < width + 11; x += 20) {
+      let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
+      let y = map(n, 0, 1, 0, height);
+      vertex(x, y);
+    }
+    endShape();
+		pop();
+	}
+	pop();
+	cnvs[0].end();
 }
 
 function drawRings(p) {
