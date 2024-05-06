@@ -16,6 +16,12 @@ let cnvs = [];
 let cnvsG = [];
 let currentCanvas;
 
+let canvasMask;
+let canvasMaskSize = 600;
+
+let canvasSource;
+let glowSize = 800;
+
 // --- TIME
 let currentPercentage;
 let interval = 1000;
@@ -29,7 +35,7 @@ const numberOfShapes = 10;
 // --- RINGS
 let radius = 100;
 let vertices = 360;
-let angle;
+// let angle;
   
 
 // --- COLORS
@@ -37,6 +43,11 @@ let palette;
 let initialColor;
 let strokeColor;
 let backgroundColor;
+
+let r = 180; let angle = 0;
+let amt = 0; let startingAngle = 0;
+
+let c1; let c2; let c3;
 
 /* ------------------------------ */
 // SHADERS
@@ -68,6 +79,11 @@ function setup() {
 	// SUNS
 	cnvs[4] = createFramebuffer();
 
+	cnvs[5] = createGraphics(width, windowWidth * 0.5625);
+
+	canvasMask   = createGraphics(width, height);
+  canvasSource = createGraphics(width, height);
+	canvasSource.clear();
 
   currentCanvas = cnvs[1];
 
@@ -87,25 +103,48 @@ function setup() {
   initialColor = floor(random(5));
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
+
+	c1 = color('#634AFF');
+	c2 = color(255, 0, 0, 0);
+	c3 = color(255, 0, 0, 0);
 }
 
 function draw() {
 	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
 	theShader = getShader(v, f);
 	
-	
+	let _c1 = color( 100, 100, 100, 100 );
+  let _c2 = color( 200, 100, 100, 0 );
+
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
   drawWaves(cnvs[1]);
 
-	cnvs[4].begin();
-		blendMode(BLEND);
-		clear();
-		fill(0, 100, 100, 100);  
-		ellipse(0, 0, width * 0.25);
-	cnvs[4].end();
+
+	radialGradient( canvasSource, 0,0,0, 0,0,(glowSize/2), color(_c1), color(_c2) );
+
+	canvasSource.strokeWeight(0);
+	canvasSource.noStroke();
+	canvasSource.push();
+			canvasSource.translate( (width/2), (height/2)-(canvasMaskSize/2));
+			canvasSource.scale(1.0);
+			canvasSource.ellipse(0, 0, glowSize);
+	canvasSource.pop();
+
+
+
+	canvasMask.strokeWeight(0);
+	canvasMask.noStroke();
+	canvasMask.fill(255);
+	canvasMask.ellipse(width/2, 10+ height/2, canvasMaskSize, canvasMaskSize);
+
+	canvasMask.drawingContext.globalCompositeOperation = 'source-in';
+	canvasMask.image(canvasSource, 0, 0)
+
+	// cnvs[5].ellipse(width / 2, height /2, 100, 100);
+
 	cnvsG[0].clear();
 	cnvsG[0].shader(theShader);
 	theShader.setUniform('u_tex0', currentCanvas);
@@ -117,7 +156,16 @@ function draw() {
 
 	image(cnvsG[0], 0, 0 , width, height);
 	
-	image(cnvs[4], 0, 0, width, height);
+	push();
+	translate(0, (height - 100) - 450);
+	image(canvasMask, 0, 0, width, height);
+	pop();
+
+	push();
+	translate(0, ((height / 2) - 200) + 450);
+	rotateX(180);
+	image(canvasMask, 0, 0, width, height);
+	pop();
 }
 
 // --- KEYPRESS LOGIC
@@ -475,3 +523,25 @@ setInterval(() => {
 	currentPercentage = getTimePercentage(start, finish);
 	// console.log(currentPercentage);
 }, interval);
+
+
+function setGradientEllipse(min, max, c1, c2) {
+  for (let i=min; i<max; i++) {
+    let amt = map(i, min, max, 0, 1);
+    let c3 = lerpColor(c1, c2, amt);
+    
+    stroke(c3);
+    
+    let x = r*cos(i);
+    let y = r*sin(i);
+    line(0, 0, x, y);
+  }
+}
+
+function radialGradient(context, sX, sY, sR, eX, eY, eR, colorS, colorE){
+	let gradient = context.drawingContext.createRadialGradient(sX, sY, sR, eX, eY, eR);
+	gradient.addColorStop(0, colorS);
+	gradient.addColorStop(1, colorE);
+	context.drawingContext.fillStyle = gradient;
+	context.drawingContext.fillStyle = gradient;
+}
