@@ -428,7 +428,7 @@ function drawSuns() {
 
 function drawWaves(p) {
 	// cnvs[1].begin();
-	// p.background(100, 100, 100, 100);
+	p.background(100, 100, 100, 100);
 	// p.clear();
   p.push();
 	p.translate(-width / 2, -height / 2);
@@ -438,7 +438,7 @@ function drawWaves(p) {
 		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
 		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
 		let alph = map(sin(frameCount), 0, 100, 0, 100);
-    p.stroke(paint, hue, sat, alph);
+    p.stroke(paint, hue, sat, 100);
 		p.noFill();
 		p.push();
     p.beginShape();
