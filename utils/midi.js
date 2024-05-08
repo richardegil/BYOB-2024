@@ -6,7 +6,7 @@ function initMIDI() {
 }
 
 function onMIDISuccess(midiAccess) {
-  console.log('"TARS: MIDI is ready')
+  console.log('TARS: MIDI is ready')
   const inputs = midiAccess.inputs
 	
 	inputs.forEach(input => {

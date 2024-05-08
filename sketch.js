@@ -25,12 +25,12 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start = '2024-05-05T14:50:00';
-let finish = '2024-05-05T15:10:00';
+let start  = '2024-05-07T22:00:00';
+let finish = '2024-05-07T23:30:00';
 
 // --- SHAPES (unused right now)
 let shapes = [];
-const numberOfShapes = 10;
+let shapesNum = 10;
 
 // --- RINGS
 let radius = 100;
@@ -47,7 +47,8 @@ let backgroundColor;
 let r = 180; let angle = 0;
 let amt = 0; let startingAngle = 0;
 
-let c1; let c2; let c3;
+let _c1; let _c2; let c3;
+let circleY;
 
 /* ------------------------------ */
 // SHADERS
@@ -58,7 +59,6 @@ let v = 'vertexShader';
 
 function preload() {
 	theShader = getShader(v, f);
-	// circleShader = getShader(v, 'transparent');
 }
 
 function setup() {
@@ -84,7 +84,6 @@ function setup() {
 	canvasMask   = createGraphics(width, height);
   canvasSource = createGraphics(width, height);
 	canvasSource.clear();
-
   currentCanvas = cnvs[1];
 
   // --- MIDI
@@ -107,18 +106,14 @@ function setup() {
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
 
-	c1 = color('#634AFF');
-	c2 = color(255, 0, 0, 0);
-	c3 = color(255, 0, 0, 0);
+	for (let i = 0; i < shapesNum; i++) {
+    shapes.push(new Shape());
+  }
 }
 
 function draw() {
 	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
 	theShader = getShader(v, f);
-	
-	let _c1 = color( 0, 0, 100, 100 );
-  let _c2 = color( 0, 0, 100, 0 );
-
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
@@ -126,28 +121,7 @@ function draw() {
   drawWaves(cnvs[1]);
 
 
-	radialGradient( canvasSource, 0,0,0, 0,0,(glowSize/2), color(_c1), color(_c2) );
-
-	canvasSource.strokeWeight(0);
-	canvasSource.noStroke();
-	canvasSource.push();
-			canvasSource.translate( (width/2), (height/2)-(canvasMaskSize/2));
-			canvasSource.scale(1.0);
-			canvasSource.ellipse(0, 0, glowSize);
-	canvasSource.pop();
-
-
-
-	canvasMask.strokeWeight(0);
-	canvasMask.noStroke();
-	canvasMask.fill(255);
-	canvasMask.ellipse(width/2, 10+ height/2, canvasMaskSize, canvasMaskSize);
-
-	canvasMask.drawingContext.globalCompositeOperation = 'source-in';
-	canvasMask.image(canvasSource, 0, 0)
-
-	// cnvs[5].ellipse(width / 2, height /2, 100, 100);
-
+	// --- Base Layer
 	cnvsG[0].clear();
 	cnvsG[0].shader(theShader);
 	theShader.setUniform('u_tex0', currentCanvas);
@@ -156,46 +130,9 @@ function draw() {
 	theShader.setUniform('u_mouse', [mouseX, mouseY]);
 	theShader.setUniform('u_time', millis() / 500.0);
 	cnvsG[0].rect(0, 0, width, height);
-
 	image(cnvsG[0], 0, 0 , width, height);
-	push();
-	// translate(0, (height - 100) - 450);
-	blendMode(BLEND);
-	translate(0, height / 2);
-	rotateX(180);
-	image(canvasMask, 0, 0, width, height);
-	pop();
-
-	push();
-	translate(0, height / 2);
-	// translate(0, ((height / 2) - 200) + 450);
-	rotateX(0);
-	image(canvasMask, 0, 0, width, height);
-	pop();
-}
-
-// --- KEYPRESS LOGIC
-function keyPressed() {
-  console.log({key});
-	if (key === 's') {
-		save(`reg_${filename}_${currentMoment}.png`);
-	}
 	
-	if (key === '1') {
-		f = 'standard';
-	}
-	
-	if (key === '2') {
-		f = 'kaleidoscope';
-	}
-	
-	if (key === '3') {
-		f = 'mirrored';
-	}
-	
-	if (key === '4') {
-		f = 'tiled';
-	}
+	drawSuns();
 }
 
 // --- SHADER LOGIC
@@ -382,6 +319,59 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
     
     gl_FragColor = vec4(gradient, gradient, gradient, 1.0);
 	}`;
+
+	let mosaicFragmentShader = `
+	precision mediump float;
+
+	// grab texcoords from vert shader
+	varying vec2 vTexCoord;
+	
+	// our textures coming from p5
+	uniform sampler2D tex0;
+	uniform vec2 resolution;
+	
+
+	uniform sampler2D   u_tex0;
+		uniform vec2        u_resolution;
+		uniform float       u_time;
+		uniform float       u_offset;
+		uniform vec2 u_mouse;
+
+		varying vec2        v_texcoord;
+	
+	float amt = 0.1; // the amount of displacement, higher is more
+	float squares = 20.0; // the number of squares to render vertically
+	
+	void main() {
+		float aspect = u_resolution.x / u_resolution.y;
+		float offset = amt * 0.5;
+	
+		vec2 uv = v_texcoord;
+		
+		// the texture is loaded upside down and backwards by default so lets flip it
+		uv.y = 1.0 - uv.y;
+	
+		// copy of the texture coords
+		vec2 tc = uv;
+	
+		// move into a range of -0.5 - 0.5
+		uv -= 0.5;
+	
+		// correct for window aspect to make squares
+		uv.x *= aspect;
+	
+		// tile will be used to offset the texture coordinates
+		// taking the fract will give us repeating patterns
+		vec2 tile = fract(uv * squares + 0.5) * amt;
+	
+		// sample the texture using our computed tile
+		// offset will remove some texcoord edge artifacting
+		vec4 tex = texture2D(u_tex0, tc + tile - offset);
+	
+		// render the output
+		gl_FragColor = tex;
+	}
+	`
 	
 	if (v == "vertexShader") {
 		vert = vertexShader;
@@ -395,6 +385,8 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 		frag = tiledFragmentShader;
 	} else if (f == "transparent") {
 		frag = transparentFragmentShader;
+	} else if (f == "mosaic") {
+		frag = mosaicFragmentShader;
 	} else {
 		frag = standardFragmentShader;
 	}
@@ -403,7 +395,7 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 
 // --- COLOR CHANGE LOGIC
 function colorChange() {
-  console.log('start');
+  console.log('TARS: Start Color Change');
   palette = floor(random(palettes.length));
   initialColor = floor(random(5));
   getColor(palette, initialColor);
@@ -422,17 +414,10 @@ function colorChange() {
   return strokeColor;
 }
 
-function drawSuns() {
-	
-}
-
 function drawWaves(p) {
-	// cnvs[1].begin();
 	p.background(100, 100, 100, 100);
-	// p.clear();
   p.push();
 	p.translate(-width / 2, -height / 2);
-
 	for (let i = 0; i < 100; i++) {
     let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
 		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
@@ -451,85 +436,69 @@ function drawWaves(p) {
 		p.pop();
 	}
 	p.pop();
-	// cnvs[1].end();
 }
 
-function drawCircle() {
-	cnvs[0].begin();
+function drawSuns() {
+	// console.log({currentPercentage});
+
 	push();
-	translate(-width / 2, -height / 2);
+  blendMode(BLEND);
+  // background(10);
 
-	for (let i = 0; i < 100; i++) {
-    let paint = map(strokeColor[0] / i / frameCount, 0, 100, 0, 360);
-		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
-		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
-		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
-    stroke(paint, hue, sat, alph);
-		noFill();
-		push();
-    beginShape();
-    for (let x = -10; x < width + 11; x += 20) {
-      let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
-      let y = map(n, 0, 1, 0, height);
-      vertex(x, y);
-    }
-    endShape();
-		pop();
-	}
+  blendMode(SCREEN);
+
+  noStroke();
+
+  drawingContext.filter = "blur(2px)";
+
+  for (let i = 0; i < shapes.length; i++) {
+    shapes[i].move();
+    shapes[i].display(canvasSource);
+  }
+  pop()
+
+	_c1 = color( 0, 0, 100, 100 );
+  _c2 = color( 0, 0, 100, 0 );
+	radialGradient( canvasSource, 0,0,0, 0,0,(glowSize/2), color(_c1), color(_c2) );
+
+	canvasSource.strokeWeight(0);
+	canvasSource.noStroke();
+	canvasSource.push();
+			canvasSource.translate( (width/2), (height/2)-(canvasMaskSize/2));
+			canvasSource.scale(1.0);
+			canvasSource.ellipse(0, 0, glowSize);
+	canvasSource.pop();
+
+	canvasMask.strokeWeight(0);
+	canvasMask.noStroke();
+	canvasMask.fill(255);
+	canvasMask.ellipse(width/2, 10+ height/2, canvasMaskSize, canvasMaskSize);
+
+	canvasMask.drawingContext.globalCompositeOperation = 'source-in';
+	canvasMask.image(canvasSource, 0, 0)
+
+	// --- Top Sun
+	push();
+	blendMode(ADD);
+	translate(0, height * currentPercentage);
+	rotateX(180);
+	image(canvasMask, 0, 0, width, height);
 	pop();
-	cnvs[0].end();
-}
 
-function drawRings(p) {
-	p.push();
-	p.translate(-width / 2, -height / 2);
+	// --- Bottom Sun
+	push();
+	blendMode(ADD);
+	translate(0, height - (height * currentPercentage));
+	rotateX(0);
+	image(canvasMask, 0, 0, width, height);
+	pop();
 
-	for (let i = 0; i < 100; i++) {
-		let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
-		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
-		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
-		let alph = map(sin(millis() * 0.1), 0, 100, 0, 100);
-		p.push();
-		p.beginShape();
-		for (let i = 0; i < vertices; i++) {
-			let x = cos(angle * i) * radius;
-			let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
-      let y = map(n, 0, 1, 0, height);
-      p.vertex(x, y);
-		}
-		p.endShape();
-		p.pop();
-	}
-	p.pop();
-}
-
-function drawSuns(p, currentPercentage) {
-	p.clear();
-	console.log({currentPercentage});
-	// let img = cnvs[1].get();
-	p.noStroke();
-	// // p.rotateX(frameCount);
-	// 	p.rotateZ(frameCount * 2);
-	p.push()
-	p.translate(0, height * currentPercentage);
-		// p.texture(img);
-		p.fill(100, 100, 100, 100);
-		p.ellipse(0, 0, width * 0.5);
-	p.pop();
-
-	p.push()
-	p.translate(0, - (height * currentPercentage));
-		// p.texture(img);
-		
-		p.ellipse(0, 0, width * 0.5);
-	p.pop();
 }
 
 setInterval(() => {
 	currentPercentage = getTimePercentage(start, finish);
-	// console.log(currentPercentage);
+	console.log(currentPercentage);
 }, interval);
-
 
 function setGradientEllipse(min, max, c1, c2) {
   for (let i=min; i<max; i++) {
@@ -550,4 +519,81 @@ function radialGradient(context, sX, sY, sR, eX, eY, eR, colorS, colorE){
 	gradient.addColorStop(1, colorE);
 	context.drawingContext.fillStyle = gradient;
 	context.drawingContext.fillStyle = gradient;
+}
+
+// --- KEYPRESS LOGIC
+function keyPressed() {
+  console.log({key});
+	if (key === 's') {
+		save(`reg_${filename}_${currentMoment}.png`);
+	}
+	
+	if (key === '1') {
+		f = 'standard';
+	}
+	
+	if (key === '2') {
+		f = 'kaleidoscope';
+	}
+	
+	if (key === '3') {
+		f = 'mirrored';
+	}
+	
+	if (key === '4') {
+		f = 'mosaic';
+	}
+}
+
+class Shape {
+  constructor() {
+    this.init();
+    // this.y = random(-this.r * 0.75, height + this.r * 0.75);
+  }
+
+  init() {
+    this.r = 40;
+    this.x = random(width * 0.25, width * 0.5 + width * 0.25);
+    this.y = height + this.r * 0.75;
+    this.speed = random(2, 8);
+  }
+
+  move() {
+    this.y -= this.speed;
+
+    if (this.y < -this.r * 0.75) {
+      this.init();
+    }
+
+  }
+
+  display(p) {
+    p.push();
+    p.translate(this.x, -this.y);
+
+    p.push();
+    // p.drawingContext.shadowColor = color("#02328B");
+    // drawingContext.shadowColor = this.colorOutside;
+    // p.drawingContext.shadowBlur = this.r;
+    p.fill("#02328B");
+    // fill(this.colorOutside);
+    p.circle(0, 0, this.r);
+   p.pop();
+
+    p.push();
+    // p.drawingContext.shadowColor = color("#08D6F3");
+    // drawingContext.shadowColor = this.colorInside;
+    // p.drawingContext.shadowBlur = this.r * 0.3;
+    p.fill("#08D6F3");
+    // fill(this.colorInside);
+    p.circle(0, 0, this.r);
+    p.pop();
+
+    p.push();
+    p.fill(0, 0, 100, 97);
+    p.circle(0, 0, this.r);
+    p.pop();
+
+    p.pop();
+  }
 }
