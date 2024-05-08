@@ -25,7 +25,7 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start  = '2024-05-07T22:00:00';
+let start  = '2024-05-07T22:30:00';
 let finish = '2024-05-07T23:30:00';
 
 // --- SHAPES (unused right now)
@@ -132,7 +132,27 @@ function draw() {
 	cnvsG[0].rect(0, 0, width, height);
 	image(cnvsG[0], 0, 0 , width, height);
 	
+		// --- Horizon Line
+		push();
+		strokeWeight(2);
+		stroke(0, 0, 100, 100);
+		line(0, height / 2, width, height / 2);
+		pop();
+
+		let numOfLines = 100;
+		let spacer = width / numOfLines;
+
+		// for (let i = 0; i < width; i+=spacer) {
+		// 	push();
+		// 	strokeWeight(2);
+		// 	stroke(0, 0, 100, 100);
+		// 	let delta = map(sin(millis() * 0.1 + i), -1, 1, 0, 1)
+		// 	line(0 + i, height / 2 + 40 * delta, 0 + i, height / 2 - 40 * delta);
+		// 	pop();
+		// }
+	
 	drawSuns();
+
 }
 
 // --- SHADER LOGIC
@@ -339,8 +359,8 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 
 		varying vec2        v_texcoord;
 	
-	float amt = 0.1; // the amount of displacement, higher is more
-	float squares = 20.0; // the number of squares to render vertically
+	float amt = 0.2; // the amount of displacement, higher is more
+	float squares = 10.0; // the number of squares to render vertically
 	
 	void main() {
 		float aspect = u_resolution.x / u_resolution.y;
@@ -449,12 +469,7 @@ function drawSuns() {
 
   noStroke();
 
-  drawingContext.filter = "blur(2px)";
-
-  for (let i = 0; i < shapes.length; i++) {
-    shapes[i].move();
-    shapes[i].display(canvasSource);
-  }
+  drawingContext.filter = "blur(10px)";
   pop()
 
 	_c1 = color( 0, 0, 100, 100 );
