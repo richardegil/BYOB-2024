@@ -25,8 +25,8 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start  = '2024-05-07T22:30:00';
-let finish = '2024-05-07T23:30:00';
+let start  = '2024-05-08T22:00:00';
+let finish = '2024-05-09T00:00:00';
 
 // --- SHAPES (unused right now)
 let shapes = [];
@@ -136,20 +136,23 @@ function draw() {
 		push();
 		strokeWeight(2);
 		stroke(0, 0, 100, 100);
-		line(0, height / 2, width, height / 2);
+		// line(0, height / 2, width, height / 2);
 		pop();
 
-		let numOfLines = 100;
+		let numOfLines = 120;
 		let spacer = width / numOfLines;
 
-		// for (let i = 0; i < width; i+=spacer) {
-		// 	push();
-		// 	strokeWeight(2);
-		// 	stroke(0, 0, 100, 100);
-		// 	let delta = map(sin(millis() * 0.1 + i), -1, 1, 0, 1)
-		// 	line(0 + i, height / 2 + 40 * delta, 0 + i, height / 2 - 40 * delta);
-		// 	pop();
-		// }
+		for (let i = 0; i < width; i+=spacer) {
+			push();
+			blendMode(HARD_LIGHT);
+			strokeWeight(2);
+			stroke(0, 0, 100, 50);
+			let d = dist(0 + i, height / 2, width / 2, height / 2);
+			let delta = map(d, 0, width / 2, 0.5, 0.0001);
+			// let delta = map(sin(millis() * 0.1 + i), -1, 1, 0, 1)
+			line(0 + i, height / 2 + 10 * delta, 0 + i, height / 2 - 10 * delta);
+			pop();
+		}
 	
 	drawSuns();
 
