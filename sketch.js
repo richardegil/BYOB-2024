@@ -35,6 +35,10 @@ let shapesNum = 10;
 // --- RINGS
 let radius = 100;
 let vertices = 360;
+
+let ringDelta = 1;
+
+let rX = 0;
 // let angle;
   
 
@@ -73,7 +77,7 @@ function setup() {
 	// WAVES
 	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
 	// TBD
-	cnvs[2] = createFramebuffer();
+	cnvs[2] = createGraphics(width, windowWidth * 0.5625, WEBGL);
 	// TBD
 	cnvs[3] = createFramebuffer();
 	// SUNS
@@ -84,7 +88,7 @@ function setup() {
 	canvasMask   = createGraphics(width, height);
   canvasSource = createGraphics(width, height);
 	canvasSource.clear();
-  currentCanvas = cnvs[1];
+  currentCanvas = cnvs[2];
 
   // --- MIDI
   initMIDI();
@@ -105,10 +109,6 @@ function setup() {
   initialColor = floor(random(5));
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
-
-	for (let i = 0; i < shapesNum; i++) {
-    shapes.push(new Shape());
-  }
 }
 
 function draw() {
@@ -119,7 +119,7 @@ function draw() {
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
   drawWaves(cnvs[1]);
-
+	drawRings(cnvs[2]);
 
 	// --- Base Layer
 	cnvsG[0].clear();
@@ -132,30 +132,37 @@ function draw() {
 	cnvsG[0].rect(0, 0, width, height);
 	image(cnvsG[0], 0, 0 , width, height);
 	
-		// --- Horizon Line
+	// --- Horizon Line
+	let numOfLines = 120;
+	let spacer = width / numOfLines;
+
+	for (let i = 0; i < width; i+=spacer) {
 		push();
-		strokeWeight(2);
-		stroke(0, 0, 100, 100);
-		// line(0, height / 2, width, height / 2);
-		pop();
-
-		let numOfLines = 120;
-		let spacer = width / numOfLines;
-
-		for (let i = 0; i < width; i+=spacer) {
-			push();
-			blendMode(HARD_LIGHT);
+			// blendMode(HARD_LIGHT);
 			strokeWeight(2);
 			stroke(0, 0, 100, 50);
 			let d = dist(0 + i, height / 2, width / 2, height / 2);
 			let delta = map(d, 0, width / 2, 0.5, 0.0001);
-			// let delta = map(sin(millis() * 0.1 + i), -1, 1, 0, 1)
 			line(0 + i, height / 2 + 10 * delta, 0 + i, height / 2 - 10 * delta);
-			pop();
-		}
+		pop();
+	}
 	
-	drawSuns();
+	// clear();
+	// translate(width / 2, height / 2);
+	// push();
+	// smooth();
+	// noFill();
+	// strokeWeight(1);
+	// stroke(0, 0, 100, 50);
+	// ellipse(0, 0, ringDelta, ringDelta);
+	// pop();
+	// if (ringDelta > width + (width * 0.25)) {
+	// 		ringDelta = 1;
+	// } else {
+	// 		ringDelta+=1;
+	// }
 
+	drawSuns();
 }
 
 // --- SHADER LOGIC
@@ -461,17 +468,22 @@ function drawWaves(p) {
 	p.pop();
 }
 
+function drawRings(p) {
+	p.noFill();
+	p.clear();
+	p.rotateX(rX);
+	p.rotateY(rX);
+	p.rotateZ(rX);
+	p.box(width * 0.25);
+	rX += 0.001;
+}
+
 function drawSuns() {
-	// console.log({currentPercentage});
 
 	push();
-  blendMode(BLEND);
-  // background(10);
-
-  blendMode(SCREEN);
-
+  // blendMode(BLEND);
+  // blendMode(SCREEN);
   noStroke();
-
   drawingContext.filter = "blur(10px)";
   pop()
 
@@ -482,9 +494,9 @@ function drawSuns() {
 	canvasSource.strokeWeight(0);
 	canvasSource.noStroke();
 	canvasSource.push();
-			canvasSource.translate( (width/2), (height/2)-(canvasMaskSize/2));
-			canvasSource.scale(1.0);
-			canvasSource.ellipse(0, 0, glowSize);
+		canvasSource.translate( (width/2), (height/2)-(canvasMaskSize/2));
+		canvasSource.scale(1.0);
+		canvasSource.ellipse(0, 0, glowSize);
 	canvasSource.pop();
 
 	canvasMask.strokeWeight(0);
@@ -510,7 +522,6 @@ function drawSuns() {
 	rotateX(0);
 	image(canvasMask, 0, 0, width, height);
 	pop();
-
 }
 
 setInterval(() => {
@@ -561,57 +572,12 @@ function keyPressed() {
 	if (key === '4') {
 		f = 'mosaic';
 	}
-}
 
-class Shape {
-  constructor() {
-    this.init();
-    // this.y = random(-this.r * 0.75, height + this.r * 0.75);
-  }
+	if (key === '5') {
+		currentCanvas = cnvs[1];
+	}
 
-  init() {
-    this.r = 40;
-    this.x = random(width * 0.25, width * 0.5 + width * 0.25);
-    this.y = height + this.r * 0.75;
-    this.speed = random(2, 8);
-  }
-
-  move() {
-    this.y -= this.speed;
-
-    if (this.y < -this.r * 0.75) {
-      this.init();
-    }
-
-  }
-
-  display(p) {
-    p.push();
-    p.translate(this.x, -this.y);
-
-    p.push();
-    // p.drawingContext.shadowColor = color("#02328B");
-    // drawingContext.shadowColor = this.colorOutside;
-    // p.drawingContext.shadowBlur = this.r;
-    p.fill("#02328B");
-    // fill(this.colorOutside);
-    p.circle(0, 0, this.r);
-   p.pop();
-
-    p.push();
-    // p.drawingContext.shadowColor = color("#08D6F3");
-    // drawingContext.shadowColor = this.colorInside;
-    // p.drawingContext.shadowBlur = this.r * 0.3;
-    p.fill("#08D6F3");
-    // fill(this.colorInside);
-    p.circle(0, 0, this.r);
-    p.pop();
-
-    p.push();
-    p.fill(0, 0, 100, 97);
-    p.circle(0, 0, this.r);
-    p.pop();
-
-    p.pop();
-  }
+	if (key === '6') {
+		currentCanvas = cnvs[2];
+	}
 }
