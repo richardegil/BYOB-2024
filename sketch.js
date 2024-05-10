@@ -25,8 +25,8 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start  = '2024-05-08T22:00:00';
-let finish = '2024-05-09T00:00:00';
+let start  = '2024-05-09T22:50:00';
+let finish = '2024-05-09T23:05:00';
 
 // --- SHAPES (unused right now)
 let shapes = [];
@@ -41,6 +41,9 @@ let ringDelta = 1;
 let rX = 0;
 // let angle;
   
+// --- Orbs
+let numberOfOrbs = 100;
+let orbs = [];
 
 // --- COLORS
 let palette;
@@ -77,7 +80,7 @@ function setup() {
 	// WAVES
 	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
 	// TBD
-	cnvs[2] = createGraphics(width, windowWidth * 0.5625, WEBGL);
+	cnvs[2] = createGraphics(width, windowWidth * 0.5625);
 	// TBD
 	cnvs[3] = createFramebuffer();
 	// SUNS
@@ -88,7 +91,7 @@ function setup() {
 	canvasMask   = createGraphics(width, height);
   canvasSource = createGraphics(width, height);
 	canvasSource.clear();
-  currentCanvas = cnvs[2];
+  currentCanvas = cnvs[1];
 
   // --- MIDI
   initMIDI();
@@ -109,17 +112,22 @@ function setup() {
   initialColor = floor(random(5));
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
+
+	// --- Orbs
+	for (let i = 0; i < numberOfOrbs; i++) {
+    orbs.push(new Orby(h, s, b, i));
+  }
 }
 
 function draw() {
-	background(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
+	background(220, 80, 8, 100);
 	theShader = getShader(v, f);
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
   drawWaves(cnvs[1]);
-	drawRings(cnvs[2]);
+	drawOrbs(cnvs[2]);
 
 	// --- Base Layer
 	cnvsG[0].clear();
@@ -468,14 +476,27 @@ function drawWaves(p) {
 	p.pop();
 }
 
-function drawRings(p) {
-	p.noFill();
+function drawOrbs(p) {
 	p.clear();
-	p.rotateX(rX);
-	p.rotateY(rX);
-	p.rotateZ(rX);
-	p.box(width * 0.25);
-	rX += 0.001;
+	p.background(100, 100, 100, 0);
+	// p.translate(-width / 2, -height / 2);
+	
+	for (let i = 0; i < orbs.length; i++) {
+		let pt = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
+		let h = map( strokeColor[1] * i, 0, 100, 0, 100);
+		let s = map( strokeColor[2] * i, 0, 100, 0, 100);
+		let alph = map(sin(frameCount), 0, 100, 0, 100);
+		// p.fill(paint, hue, sat, 100);
+
+		push();
+			orbs[i].display(p);
+			orbs[i].update();
+		pop();
+	}
+}
+
+function drawRings(p) {
+	
 }
 
 function drawSuns() {
@@ -487,7 +508,8 @@ function drawSuns() {
   drawingContext.filter = "blur(10px)";
   pop()
 
-	_c1 = color( 0, 0, 100, 100 );
+	_c1 = color( 0, 0, 100, 55 );
+	// _c1 = color(0, 0, 100, map(sin(frameCount), -1, 1, 20, 55));
   _c2 = color( 0, 0, 100, 0 );
 	radialGradient( canvasSource, 0,0,0, 0,0,(glowSize/2), color(_c1), color(_c2) );
 
@@ -579,5 +601,64 @@ function keyPressed() {
 
 	if (key === '6') {
 		currentCanvas = cnvs[2];
+	}
+}
+
+class Orby {
+	constructor(h, s, b, i) {
+		this.x         = floor(random(0, width));
+		
+		this.size      = random(width * 0.01, width * 0.02);
+		this.direction = floor(random(2));
+		this.speed     = random(6, 8);
+		this.h = h;
+		this.s = s;
+		this.b = b;
+		this.i = i;
+
+		if (this.direction == 1) {
+			this.y = random(0, height / 2);
+		} else {
+			this.y = random(height / 2, height);
+		}
+	}
+
+	display(p) {
+		let deltaSize;
+		p.smooth();		
+		// p.translate(-width / 2, -height / 2);
+
+		// let pt = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
+		// let h = map( strokeColor[1] * i, 0, 100, 0, 100);
+		// let s = map( strokeColor[2] * i, 0, 100, 0, 100);
+		p.fill(
+			map(h * this.i / frameCount, 0, 100, 0, 360), 
+			map(s * this.i / frameCount, 0, 100, 0, 360), 
+			map(b * this.i / frameCount, 0, 100, 0, 360), 
+			100
+		);
+		p.noStroke();
+		if (this.direction == 1) {
+			deltaSize = map(sin(frameCount * this.i * 0.1), -1, 1, this.size * 0.5, this.size * 4);
+		} else {
+			deltaSize = map(cos(frameCount * this.i * 0.1), -1, 1, this.size * 4, this.size * 0.5);
+		}
+		p.rect(this.x, this.y, this.size , deltaSize);
+	}
+
+	update() {
+		if (this.direction == 1) {
+			if (this.y > 0) {
+				this.y -= random(0.1, 0.8);
+			} else {
+				this.y = height / 2;
+			}
+		} else {
+			if (this.y < height) {
+				this.y += random(0.1, 0.8);
+			} else {
+				this.y = height / 2;
+			}
+		}
 	}
 }
