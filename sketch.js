@@ -12,55 +12,36 @@ let currentMoment = getCurrentDate();
 // VARIABLES
 /* ------------------------------ */
 // --- CANVASES
-let cnvs = [];
+let cnvs  = [];
 let cnvsG = [];
 let currentCanvas;
-
 let canvasMask;
 let canvasMaskSize;
-
 let canvasSource;
 let glowSize;
 
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start  = '2024-05-10T20:52:00';
-let finish = '2024-05-10T21:22:00';
+let start    = '2024-05-10T21:29:00';
+let finish   = '2024-05-10T22:00:00';
 
 // --- SHAPES (unused right now)
-let shapes = [];
+let shapes    = [];
 let shapesNum = 10;
-
-// --- RINGS
-let radius = 100;
-let vertices = 360;
-
-let ringDelta = 1;
-
-let rX = 0;
-// let angle;
-  
-// --- Orbs
-let numberOfOrbs = 100;
-let orbs = [];
 
 // --- COLORS
 let palette;
 let initialColor;
 let strokeColor;
 let backgroundColor;
-
-let r = 180; let angle = 0;
-let amt = 0; let startingAngle = 0;
-
-let _c1; let _c2; let c3;
-let circleY;
+let _c1; 
+let _c2;
 
 // --- Noise Values
-let noiseScaleY = 0;
-let noiseScaleX = 0;
-let verticalSpread = 0;
+let noiseScaleY      = 0;
+let noiseScaleX      = 0;
+let verticalSpread   = 0;
 let horizontalSpread = 0.01;
 
 /* ------------------------------ */
@@ -73,32 +54,31 @@ let v = 'vertexShader';
 // --- Kaleidoscope
 let kaleidoscopeX = 0;
 let kaleidoscopeY = 0;
+
+// --- Mosaic
 let mosaicAmt = 0.2
 let mosaicSquares = 10.0
 
+
+/* ------------------------------ */
+// PRELOAD
+/* ------------------------------ */
 function preload() {
 	theShader = getShader(v, f);
 }
 
+/* ------------------------------ */
+// SETUP
+/* ------------------------------ */
 function setup() {
 	// --- MAIN CANVAS
 	createCanvas(windowWidth, windowWidth * 0.5625, WEBGL);
-
 	cnvsG[0] = createGraphics(width, windowWidth * 0.5625, WEBGL);
 
 	// --- SECONDARY CANVASES 
-	// BASE
-	cnvs[0] = createFramebuffer();
 	// WAVES
 	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
-	// TBD
-	// cnvs[2] = createGraphics(width, windowWidth * 0.5625);
-	// TBD
-	cnvs[3] = createFramebuffer();
-	// SUNS
-	cnvs[4] = createFramebuffer();
-
-	cnvs[5] = createGraphics(width, windowWidth * 0.5625);
+	
 
 	canvasMask   = createGraphics(width, height);
   canvasSource = createGraphics(width, height);
@@ -115,8 +95,6 @@ function setup() {
 	smooth();
   colorChange();
 
-	angle = TWO_PI / vertices;
-
 	canvasMaskSize = height;
 	glowSize = height;
 
@@ -124,42 +102,50 @@ function setup() {
   initialColor = floor(random(5));
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
-
-	// --- Orbs
-	for (let i = 0; i < numberOfOrbs; i++) {
-    orbs.push(new Orby(h, s, b, i));
-  }
 }
 
+/* ------------------------------ */
+// DRAW
+/* ------------------------------ */
 function draw() {
+	// --- Initial Settings
 	background(220, 80, 8, 100);
 	theShader = getShader(v, f);
 	smooth();
 	noStroke();
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
-  drawWaves(cnvs[1]);
-	// drawOrbs(cnvs[2]);
+  
+	drawWaves(cnvs[1]);
+	drawBaseLayer();
+	drawHorizonLine();
+	drawSuns();
+}
 
-	// --- Base Layer
+/* ------------------------------ */
+// PARTIALS
+/* ------------------------------ */
+
+// --- BASE LAYER
+function drawBaseLayer() {
 	cnvsG[0].clear();
 	cnvsG[0].shader(theShader);
 	theShader.setUniform('u_tex0', currentCanvas);
-	// theShader.setUniform('u_offset', offset);
 	theShader.setUniform('u_resolution', [width, height]);
 	theShader.setUniform('u_mouse', [kaleidoscopeX, kaleidoscopeY]);
 	theShader.setUniform('u_mouse2', [mosaicAmt, mosaicSquares]);
 	theShader.setUniform('u_time', millis() / 500.0);
 	cnvsG[0].rect(0, 0, width, height);
 	image(cnvsG[0], 0, 0 , width, height);
-	
-	// --- Horizon Line
+}
+
+// --- HORIZON LINE
+function drawHorizonLine(){
 	let numOfLines = 120;
 	let spacer = width / numOfLines;
 
 	for (let i = 0; i < width; i+=spacer) {
 		push();
-			// blendMode(HARD_LIGHT);
 			strokeWeight(2);
 			stroke(0, 0, 100, 50);
 			let d = dist(0 + i, height / 2, width / 2, height / 2);
@@ -167,23 +153,6 @@ function draw() {
 			line(0 + i, height / 2 + 10 * delta, 0 + i, height / 2 - 10 * delta);
 		pop();
 	}
-	
-	// clear();
-	// translate(width / 2, height / 2);
-	// push();
-	// smooth();
-	// noFill();
-	// strokeWeight(1);
-	// stroke(0, 0, 100, 50);
-	// ellipse(0, 0, ringDelta, ringDelta);
-	// pop();
-	// if (ringDelta > width + (width * 0.25)) {
-	// 		ringDelta = 1;
-	// } else {
-	// 		ringDelta+=1;
-	// }
-
-	drawSuns();
 }
 
 // --- SHADER LOGIC
@@ -445,6 +414,7 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 	} else {
 		frag = standardFragmentShader;
 	}
+
 	return createShader(vert, frag);
 }
 
@@ -477,7 +447,7 @@ function drawWaves(p) {
     let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
 		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
 		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
-		let alph = map(sin(frameCount), 0, 100, 0, 100);
+		// let alph = map(sin(frameCount * 4), -1, 1, 0, 100);
     p.stroke(paint, hue, sat, 100);
 		p.noFill();
 		p.push();
@@ -493,40 +463,13 @@ function drawWaves(p) {
 	p.pop();
 }
 
-function drawOrbs(p) {
-	p.clear();
-	p.background(100, 100, 100, 0);
-	// p.translate(-width / 2, -height / 2);
-	
-	for (let i = 0; i < orbs.length; i++) {
-		let pt = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
-		let h = map( strokeColor[1] * i, 0, 100, 0, 100);
-		let s = map( strokeColor[2] * i, 0, 100, 0, 100);
-		let alph = map(sin(frameCount), 0, 100, 0, 100);
-		// p.fill(paint, hue, sat, 100);
-
-		push();
-			orbs[i].display(p);
-			orbs[i].update();
-		pop();
-	}
-}
-
-function drawRings(p) {
-	
-}
-
 function drawSuns() {
-
 	push();
-  // blendMode(BLEND);
-  // blendMode(SCREEN);
   noStroke();
   drawingContext.filter = "blur(10px)";
   pop()
 
 	_c1 = color( 0, 0, 100, 55 );
-	// _c1 = color(0, 0, 100, map(sin(frameCount), -1, 1, 20, 55));
   _c2 = color( 0, 0, 100, 0 );
 	radialGradient( canvasSource, 0,0,0, 0,0,(glowSize/2), color(_c1), color(_c2) );
 
@@ -619,63 +562,4 @@ function keyPressed() {
 	// if (key === '6') {
 	// 	currentCanvas = cnvs[2];
 	// }
-}
-
-class Orby {
-	constructor(h, s, b, i) {
-		this.x         = floor(random(0, width));
-		
-		this.size      = random(width * 0.01, width * 0.02);
-		this.direction = floor(random(2));
-		this.speed     = random(6, 8);
-		this.h = h;
-		this.s = s;
-		this.b = b;
-		this.i = i;
-
-		if (this.direction == 1) {
-			this.y = random(0, height / 2);
-		} else {
-			this.y = random(height / 2, height);
-		}
-	}
-
-	display(p) {
-		let deltaSize;
-		p.smooth();		
-		// p.translate(-width / 2, -height / 2);
-
-		// let pt = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
-		// let h = map( strokeColor[1] * i, 0, 100, 0, 100);
-		// let s = map( strokeColor[2] * i, 0, 100, 0, 100);
-		p.fill(
-			map(h * this.i / frameCount, 0, 100, 0, 360), 
-			map(s * this.i / frameCount, 0, 100, 0, 360), 
-			map(b * this.i / frameCount, 0, 100, 0, 360), 
-			100
-		);
-		p.noStroke();
-		if (this.direction == 1) {
-			deltaSize = map(sin(frameCount * this.i * 0.1), -1, 1, this.size * 0.5, this.size * 4);
-		} else {
-			deltaSize = map(cos(frameCount * this.i * 0.1), -1, 1, this.size * 4, this.size * 0.5);
-		}
-		p.rect(this.x, this.y, this.size , deltaSize);
-	}
-
-	update() {
-		if (this.direction == 1) {
-			if (this.y > 0) {
-				this.y -= random(0.1, 0.8);
-			} else {
-				this.y = height / 2;
-			}
-		} else {
-			if (this.y < height) {
-				this.y += random(0.1, 0.8);
-			} else {
-				this.y = height / 2;
-			}
-		}
-	}
 }

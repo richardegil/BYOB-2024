@@ -20,7 +20,7 @@ function onMIDIFailure(error) {
 
 function handleMidi (message) {
 	let [_, midiKeyID, value] = message.data
-	console.log({midiKeyID, value})
+	// console.log({midiKeyID, value})
 
 	// Pad 5
 	if (midiKeyID === 0) {
@@ -86,15 +86,13 @@ function handleMidi (message) {
 	if (midiKeyID === 72) {
 		const mapKnob = map(value, 0, 127, -1, 1)
     mosaicAmt = mapKnob;
-    console.log({mosaicAmt})
-}
+  }
 
-// Knob 4
-if (midiKeyID === 73) {
-  const mapKnob = map(value, 0, 127, 2, 20)
-  mosaicSquares = floor(mapKnob);
-  console.log({mosaicSquares})
-}
+  // Knob 4
+  if (midiKeyID === 73) {
+    const mapKnob = map(value, 0, 127, 2, 20)
+    mosaicSquares = floor(mapKnob);
+  }
 
   // Knob 5
   if (midiKeyID === 74) {
@@ -106,14 +104,12 @@ if (midiKeyID === 73) {
   if (midiKeyID === 75) {
     const mapKnob = map(value, 0, 127, 0, 500)
     noiseScaleX = mapKnob;
-    // console.log({beta})
   }
 
   // Knob 7
   if (midiKeyID === 76) {
     const mapKnob = map(value, 0, 127, 1, 200)
     horizontalSpread = mapKnob
-    console.log({horizontalSpread});
   }
 
   // Knob 8
