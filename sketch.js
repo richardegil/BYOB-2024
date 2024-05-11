@@ -9,6 +9,13 @@ let filename = getProjectName();
 let currentMoment = getCurrentDate();
 
 /* ------------------------------ */
+// UTILITIES
+/* ------------------------------ */
+let showUtilities = 0;
+let hSlider, sSlider, bSlider, progressSlider;
+let moveCheckbox;
+
+/* ------------------------------ */
 // VARIABLES
 /* ------------------------------ */
 // --- CANVASES
@@ -23,8 +30,8 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start    = '2024-05-10T21:29:00';
-let finish   = '2024-05-10T22:00:00';
+let start    = '2024-05-11T10:20:00';
+let finish   = '2024-05-11T10:50:00';
 
 // --- SHAPES (unused right now)
 let shapes    = [];
@@ -59,7 +66,6 @@ let kaleidoscopeY = 0;
 let mosaicAmt = 0.2
 let mosaicSquares = 10.0
 
-
 /* ------------------------------ */
 // PRELOAD
 /* ------------------------------ */
@@ -78,8 +84,8 @@ function setup() {
 	// --- SECONDARY CANVASES 
 	// WAVES
 	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
-	
 
+	// SUNS
 	canvasMask   = createGraphics(width, height);
   canvasSource = createGraphics(width, height);
 	canvasSource.clear();
@@ -102,6 +108,19 @@ function setup() {
   initialColor = floor(random(5));
   getColor(palette, initialColor);
   backgroundColor = [h, s, b];
+
+	// UTILITIES
+		hSlider = createSlider(0, 720, 100);
+		hSlider.position(20, 20);
+		sSlider = createSlider(0, 100, 100);
+		sSlider.position(20, 50);
+		bSlider = createSlider(0, 100, 100);
+		bSlider.position(20, 80);
+		progressSlider = createSlider(0, 1, 0.5, 0.01);
+		progressSlider.position(20, 110);
+		moveCheckbox = createCheckbox();
+		moveCheckbox.position(0, 140);
+
 }
 
 /* ------------------------------ */
@@ -422,31 +441,32 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 function colorChange() {
   console.log('TARS: Start Color Change');
   palette = floor(random(palettes.length));
-  initialColor = floor(random(5));
+  initialColor = floor(random(15));
   getColor(palette, initialColor);
   strokeColor = [h, s, b];
-
-  let i = 0;
-  setInterval(() => {
-    palette = floor(random(palettes.length));
-    initialColor = floor(random(5));
-    getColor(palette, initialColor);
-    strokeColor = [h, s, b];
-
-    // console.log(`test: ${i}`)
-    i++;
-  }, 30000); // 30 seconds in milliseconds
+	console.log(strokeColor);
+ // 30 seconds in milliseconds
   return strokeColor;
 }
 
+setInterval(() => {
+	colorChange();
+	// console.log(`test: ${i}`)
+}, 3000);
+
 function drawWaves(p) {
+	strokeColor = [
+		200,
+		100, 
+		55
+	]
 	p.background(100, 100, 100, 100);
   p.push();
 	p.translate(-width / 2, -height / 2);
 	for (let i = 0; i < 100; i++) {
-    let paint = map(strokeColor[0] * i / frameCount, 0, 100, 0, 360);
-		let hue = map( strokeColor[1] * i, 0, 100, 0, 100);
-		let sat = map( strokeColor[2] * i, 0, 100, 0, 100);
+    let paint = map( hSlider.value() * i / frameCount, 0, 100, 0, 360);
+		let hue = map( sSlider.value() * i, 0, 100, 0, 100);
+		let sat = map( bSlider.value() * i, 0, 100, 0, 100);
 		// let alph = map(sin(frameCount * 4), -1, 1, 0, 100);
     p.stroke(paint, hue, sat, 100);
 		p.noFill();
@@ -489,10 +509,15 @@ function drawSuns() {
 	canvasMask.drawingContext.globalCompositeOperation = 'source-in';
 	canvasMask.image(canvasSource, 0, 0)
 
+	// console.log(move);
 	// --- Top Sun
 	push();
 	blendMode(ADD);
-	translate(0, height * currentPercentage);
+	if (moveCheckbox && moveCheckbox.checked()) {
+		translate(0, height * progressSlider.value());
+	} else {
+		translate(0, height * currentPercentage);
+	}
 	rotateX(180);
 	image(canvasMask, 0, 0, width, height);
 	pop();
@@ -500,7 +525,13 @@ function drawSuns() {
 	// --- Bottom Sun
 	push();
 	blendMode(ADD);
-	translate(0, height - (height * currentPercentage));
+
+	if (moveCheckbox && moveCheckbox.checked()) {
+		translate(0, height - (height * progressSlider.value()));
+	} else {
+		translate(0, height - (height * currentPercentage));
+	}
+
 	rotateX(0);
 	image(canvasMask, 0, 0, width, height);
 	pop();
@@ -508,7 +539,7 @@ function drawSuns() {
 
 setInterval(() => {
 	currentPercentage = getTimePercentage(start, finish);
-	// console.log(currentPercentage);
+	console.log(currentPercentage);
 }, interval);
 
 function setGradientEllipse(min, max, c1, c2) {
