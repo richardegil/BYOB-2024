@@ -25,8 +25,8 @@ let glowSize;
 // --- TIME
 let currentPercentage;
 let interval = 1000;
-let start  = '2024-05-09T22:50:00';
-let finish = '2024-05-09T23:05:00';
+let start  = '2024-05-10T20:52:00';
+let finish = '2024-05-10T21:22:00';
 
 // --- SHAPES (unused right now)
 let shapes = [];
@@ -57,12 +57,24 @@ let amt = 0; let startingAngle = 0;
 let _c1; let _c2; let c3;
 let circleY;
 
+// --- Noise Values
+let noiseScaleY = 0;
+let noiseScaleX = 0;
+let verticalSpread = 0;
+let horizontalSpread = 0.01;
+
 /* ------------------------------ */
 // SHADERS
 /* ------------------------------ */
 let theShader;
 let f = 'standardFragmentShader';
 let v = 'vertexShader';
+
+// --- Kaleidoscope
+let kaleidoscopeX = 0;
+let kaleidoscopeY = 0;
+let mosaicAmt = 0.2
+let mosaicSquares = 10.0
 
 function preload() {
 	theShader = getShader(v, f);
@@ -80,7 +92,7 @@ function setup() {
 	// WAVES
 	cnvs[1] = createGraphics(width, windowWidth * 0.5625, WEBGL);
 	// TBD
-	cnvs[2] = createGraphics(width, windowWidth * 0.5625);
+	// cnvs[2] = createGraphics(width, windowWidth * 0.5625);
 	// TBD
 	cnvs[3] = createFramebuffer();
 	// SUNS
@@ -127,7 +139,7 @@ function draw() {
 	translate(-width / 2, -height / 2);
 	rectMode(CENTER);
   drawWaves(cnvs[1]);
-	drawOrbs(cnvs[2]);
+	// drawOrbs(cnvs[2]);
 
 	// --- Base Layer
 	cnvsG[0].clear();
@@ -135,7 +147,8 @@ function draw() {
 	theShader.setUniform('u_tex0', currentCanvas);
 	// theShader.setUniform('u_offset', offset);
 	theShader.setUniform('u_resolution', [width, height]);
-	theShader.setUniform('u_mouse', [mouseX, mouseY]);
+	theShader.setUniform('u_mouse', [kaleidoscopeX, kaleidoscopeY]);
+	theShader.setUniform('u_mouse2', [mosaicAmt, mosaicSquares]);
 	theShader.setUniform('u_time', millis() / 500.0);
 	cnvsG[0].rect(0, 0, width, height);
 	image(cnvsG[0], 0, 0 , width, height);
@@ -373,7 +386,7 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 		uniform vec2        u_resolution;
 		uniform float       u_time;
 		uniform float       u_offset;
-		uniform vec2 u_mouse;
+		uniform vec2 u_mouse2;
 
 		varying vec2        v_texcoord;
 	
@@ -382,7 +395,11 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 	
 	void main() {
 		float aspect = u_resolution.x / u_resolution.y;
-		float offset = amt * 0.5;
+
+		// make mouse
+		vec2 mouse = u_mouse2 / u_resolution; 
+
+		float offset = u_mouse2.x * 0.5;
 	
 		vec2 uv = v_texcoord;
 		
@@ -400,7 +417,7 @@ function getShader(v = "vertexShader", f = "standardFragmentShader") {
 	
 		// tile will be used to offset the texture coordinates
 		// taking the fract will give us repeating patterns
-		vec2 tile = fract(uv * squares + 0.5) * amt;
+		vec2 tile = fract(uv * u_mouse2.y + 0.5) * amt;
 	
 		// sample the texture using our computed tile
 		// offset will remove some texcoord edge artifacting
@@ -446,7 +463,7 @@ function colorChange() {
     getColor(palette, initialColor);
     strokeColor = [h, s, b];
 
-    console.log(`test: ${i}`)
+    // console.log(`test: ${i}`)
     i++;
   }, 30000); // 30 seconds in milliseconds
   return strokeColor;
@@ -466,7 +483,7 @@ function drawWaves(p) {
 		p.push();
     p.beginShape();
     for (let x = -10; x < width + 11; x += 20) {
-      let n = noise(x * 0.001, i * 0.01, frameCount * 0.005);
+      let n = noise(x * 0.001 + noiseScaleX, i * noiseScaleY, frameCount * 0.005);
       let y = map(n, 0, 1, 0, height);
       p.vertex(x, y);
     }
@@ -548,7 +565,7 @@ function drawSuns() {
 
 setInterval(() => {
 	currentPercentage = getTimePercentage(start, finish);
-	console.log(currentPercentage);
+	// console.log(currentPercentage);
 }, interval);
 
 function setGradientEllipse(min, max, c1, c2) {
@@ -574,7 +591,7 @@ function radialGradient(context, sX, sY, sR, eX, eY, eR, colorS, colorE){
 
 // --- KEYPRESS LOGIC
 function keyPressed() {
-  console.log({key});
+  // console.log({key});
 	if (key === 's') {
 		save(`reg_${filename}_${currentMoment}.png`);
 	}
@@ -599,9 +616,9 @@ function keyPressed() {
 		currentCanvas = cnvs[1];
 	}
 
-	if (key === '6') {
-		currentCanvas = cnvs[2];
-	}
+	// if (key === '6') {
+	// 	currentCanvas = cnvs[2];
+	// }
 }
 
 class Orby {

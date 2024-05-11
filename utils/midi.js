@@ -22,29 +22,28 @@ function handleMidi (message) {
 	let [_, midiKeyID, value] = message.data
 	console.log({midiKeyID, value})
 
-	// Pad 1
+	// Pad 5
 	if (midiKeyID === 0) {
-    console.log(1)
-    currentCanvas = cnvs[0];
+    console.log(5)
+    f = 'mosaic';
 	}
 
-  // Pad 2
+  // Pad 6
 	if (midiKeyID === 1) {
-    console.log(2)
-    shapeValue = "box"
-    currentCanvas = cnvs[1];
+    console.log(6)
+    f = 'mirrored';
 	}
 
-  // Pad 3
+  // Pad 7
 	if (midiKeyID === 2) {
-    console.log(3)
-    currentCanvas = cnvs[2];
+    console.log(7)
+    f = 'kaleidoscope';
 	}
 
-  // Pad 4
+  // Pad 8
 	if (midiKeyID === 3) {
-    console.log(4)
-    currentCanvas = cnvs[3];
+    console.log(8)
+    f = 'standard';
 	}
 
   // Pad 5
@@ -68,55 +67,53 @@ function handleMidi (message) {
   // Pad 8
 	if (midiKeyID === 7) {
     console.log(8)
-    f = 'tiled';
+    f = 'mosaic';
 	}
 
 	// Knob 1
 	if (midiKeyID === 70) {
-		const mapKnob = map(value, 0, 127, -0.003, 0.001)
-    threshold = mapKnob
-    console.log({threshold})
+		const mapKnob = map(value, 0, 127, 0, width)
+    kaleidoscopeX = mapKnob
 	}	
 
 	// Knob 2
 	if (midiKeyID === 71) {
-		const mapKnob = map(value, 0, 127, 0, 0.01)
-    mapZ = map(value, 0, 127, 0, 1000)
-    console.log({mapZ})
+		const mapKnob = map(value, 0, 127, 0, height)
+    kaleidoscopeY = mapKnob
 	}
   
   // Knob 3
 	if (midiKeyID === 72) {
-		const mapKnob = map(value, 0, 127, 0, 0.01)
-    noiseScaleX = mapKnob;
-    console.log({noiseScaleX})
+		const mapKnob = map(value, 0, 127, -1, 1)
+    mosaicAmt = mapKnob;
+    console.log({mosaicAmt})
 }
 
 // Knob 4
 if (midiKeyID === 73) {
-  const mapKnob = map(value, 0, 127, 0, 0.01)
-  noiseScaleY = mapKnob;
-  console.log({noiseScaleY})
+  const mapKnob = map(value, 0, 127, 2, 20)
+  mosaicSquares = floor(mapKnob);
+  console.log({mosaicSquares})
 }
 
   // Knob 5
   if (midiKeyID === 74) {
-    const mapKnob = map(value, 0, 127, 0, 2)
-    color = mapKnob;
-    console.log({color})
+    const mapKnob = map(value, 0, 127, 0, 0.1)
+    noiseScaleY = mapKnob;
   }
 
   // Knob 6
   if (midiKeyID === 75) {
     const mapKnob = map(value, 0, 127, 0, 500)
-    beta = mapKnob;
-    console.log({beta})
+    noiseScaleX = mapKnob;
+    // console.log({beta})
   }
 
   // Knob 7
   if (midiKeyID === 76) {
-    const mapKnob = map(value, 0, 127, -0.02, 0.02)
-    m = mapKnob
+    const mapKnob = map(value, 0, 127, 1, 200)
+    horizontalSpread = mapKnob
+    console.log({horizontalSpread});
   }
 
   // Knob 8
