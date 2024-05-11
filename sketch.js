@@ -13,6 +13,7 @@ let currentMoment = getCurrentDate();
 /* ------------------------------ */
 let showUtilities = 0;
 let hSlider, sSlider, bSlider, progressSlider;
+let waveSlider;
 let moveCheckbox;
 
 /* ------------------------------ */
@@ -118,8 +119,10 @@ function setup() {
 		bSlider.position(20, 80);
 		progressSlider = createSlider(0, 1, 0.5, 0.01);
 		progressSlider.position(20, 110);
+		waveSlider = createSlider(0, 0.1, 0, 0.01);
+		waveSlider.position(20, 140);
 		moveCheckbox = createCheckbox();
-		moveCheckbox.position(0, 140);
+		moveCheckbox.position(20, 170);
 
 }
 
@@ -455,6 +458,8 @@ setInterval(() => {
 }, 3000);
 
 function drawWaves(p) {
+	noiseScaleY = waveSlider.value();
+
 	strokeColor = [
 		200,
 		100, 
